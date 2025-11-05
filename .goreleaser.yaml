@@ -1,0 +1,55 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    main: ./cmd/traefik-watch
+
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}-{{ if .IsSnapshot }}snapshot{{ else }}{{.Version }}{{ end }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+nfpms:
+  - section: "default"
+    priority: "extra"
+
+    maintainer: "Andrew Bates <abates@omeganetserv.com>"
+    description: |
+      traefik-watch will monitor a rootless-podman environment for Traefik docker labels and write dynamic configs to an output directory.
+    homepage: "https://github.com/network-automation-labs/traefik-watch"
+    license: "Apache-2.0"
+    file_name_template: '{{ .PackageName }}_{{ if .IsSnapshot }}snapshot{{ else }}{{.Version }}{{ end }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}'
+    scripts:
+      postinstall: ./packaging/postinst.sh
+      preremove: ./packaging/prerm.sh
+    contents:
+      - src: ./packaging/systemd/traefik-watch.service
+        dst: /usr/lib/systemd/user/traefik-watch.service
+    formats:
+      - deb
+
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

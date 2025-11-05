@@ -1,0 +1,13 @@
+[Unit]
+Description=Traefik Provider for Podman
+Requires=podman.service
+After=podman.service
+
+[Service]
+Delegate=true
+Type=exec
+KillMode=process
+ExecStart=/usr/bin/rootless-netman -server
+
+[Install]
+WantedBy=default.target
