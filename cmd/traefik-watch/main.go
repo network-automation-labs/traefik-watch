@@ -89,6 +89,7 @@ func writeConfig(filename string, config any) error {
 var configDir string
 var configFilename string
 var debug bool
+var network string
 
 func init() {
 	u, err := user.Current()
@@ -97,6 +98,7 @@ func init() {
 		u = &user.User{Username: "traefik"}
 	}
 
+	flag.StringVar(&network, "net", "systemd-traefik", "Podman network that the traefik proxy is attached to.")
 	flag.StringVar(&configDir, "output-dir", "/etc/traefik/conf.d", "Directory to store the dynamic traefik configuration")
 	flag.StringVar(&configFilename, "output", fmt.Sprintf("%s.yaml", u.Username), "Output filename for the dynamic traefik configuration")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
@@ -123,7 +125,7 @@ func main() {
 		Shared: docker.Shared{
 			Watch:       true,
 			DefaultRule: docker.DefaultTemplateRule,
-			Network:     "traefik",
+			Network:     network,
 		},
 		ClientConfig: docker.ClientConfig{
 			Endpoint: dockerEndpoint,
