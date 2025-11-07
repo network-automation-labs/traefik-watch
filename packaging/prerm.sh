@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SERVICE_NAME=podman.service
+SERVICE_NAME="traefik-watch.service"
 
 for user in $(getent passwd | awk -F: '{print $1}') ; do
 	if [ $user = "root" ] ; then continue ; fi
