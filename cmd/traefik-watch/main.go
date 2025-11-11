@@ -82,6 +82,7 @@ func writeConfig(filename string, config any) error {
 		if err == nil {
 			_, err = file.Write(data)
 		}
+		logger.Debug().Str("config", string(data)).Msg("Wrote config file")
 	}
 	return err
 }
@@ -90,6 +91,7 @@ var configDir string
 var configFilename string
 var debug bool
 var network string
+var logger zerolog.Logger
 
 func init() {
 	u, err := user.Current()
@@ -109,7 +111,7 @@ func main() {
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
-	logger := zerolog.New(os.Stderr)
+	logger = zerolog.New(os.Stderr)
 	ctx := logger.WithContext(context.Background())
 
 	configFilename := filepath.Join(configDir, configFilename)
@@ -143,29 +145,41 @@ func main() {
 	failOnError(err)
 
 	logger.Debug().Msg("Listening for configuration messages")
-	for msg := range configChan {
-		logger.Debug().Interface("message", msg).Msg("Message received")
-		config := msg.Configuration
+	for {
+		select {
+		case <-ctx.Done():
+			err := ctx.Err()
+			if err == nil {
+				logger.Info().Msg("Context is done, exiting")
 
-		if isZero(reflect.ValueOf(config.TCP)) {
-			config.TCP = nil
-		}
+			} else {
+				logger.Err(err).Msg("Context error, exiting")
+			}
+			return
+		case msg := <-configChan:
+			logger.Debug().Interface("message", msg).Msg("Message received")
+			config := msg.Configuration
 
-		if isZero(reflect.ValueOf(config.UDP)) {
-			config.UDP = nil
-		}
+			if isZero(reflect.ValueOf(config.TCP)) {
+				config.TCP = nil
+			}
 
-		if isZero(reflect.ValueOf(config.HTTP)) {
-			config.HTTP = nil
-		}
+			if isZero(reflect.ValueOf(config.UDP)) {
+				config.UDP = nil
+			}
 
-		if isZero(reflect.ValueOf(config.TLS)) {
-			config.TLS = nil
-		}
+			if isZero(reflect.ValueOf(config.HTTP)) {
+				config.HTTP = nil
+			}
 
-		err := writeConfig(configFilename, msg.Configuration)
-		if err != nil {
-			logger.Error().Err(err).Msgf("Error writing configuration %s", configFilename)
+			if isZero(reflect.ValueOf(config.TLS)) {
+				config.TLS = nil
+			}
+
+			err := writeConfig(configFilename, msg.Configuration)
+			if err != nil {
+				logger.Error().Err(err).Msgf("Error writing configuration %s", configFilename)
+			}
 		}
 	}
 }
