@@ -82,7 +82,7 @@ func writeConfig(filename string, config any) error {
 		if err == nil {
 			_, err = file.Write(data)
 		}
-		logger.Debug().Str("config", string(data)).Msg("Wrote config file")
+		logger.Debug().Msg("Wrote config file")
 	}
 	return err
 }
@@ -108,6 +108,7 @@ func init() {
 
 func main() {
 	flag.Parse()
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 	if debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
@@ -145,6 +146,7 @@ func main() {
 	failOnError(err)
 
 	logger.Debug().Msg("Listening for configuration messages")
+	var currentConfiguration dynamic.Configuration
 	for {
 		select {
 		case <-ctx.Done():
@@ -176,9 +178,13 @@ func main() {
 				config.TLS = nil
 			}
 
-			err := writeConfig(configFilename, msg.Configuration)
-			if err != nil {
-				logger.Error().Err(err).Msgf("Error writing configuration %s", configFilename)
+			if currentConfiguration != *msg.Configuration {
+				err := writeConfig(configFilename, msg.Configuration)
+				if err == nil {
+					currentConfiguration = *msg.Configuration
+				} else {
+					logger.Error().Err(err).Msgf("Error writing configuration %s", configFilename)
+				}
 			}
 		}
 	}
