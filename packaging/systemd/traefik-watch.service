@@ -8,6 +8,8 @@ Delegate=true
 Type=exec
 KillMode=process
 ExecStart=/usr/bin/traefik-watch
+Restart=on-failure
+RestartSec=5s
 Environment="DOCKER_HOST=unix://%t/podman/podman.sock"
 
 [Install]
